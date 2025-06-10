@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News App Playable Ad</title>
+    <style>
+        * {margin:0; padding:0; box-sizing:border-box;}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 10px;
+        }
+        .ad-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            height: 100vh;
+            max-height: 700px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+        .article-image {
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+            max-height: 400px;
+            object-fit: cover;
+            border-radius: 16px;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            cursor: pointer;
+        }
+        .article-image:hover { transform: scale(1.02);}
+        .read-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 16px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 30px;
+            margin-top: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .read-button:hover {transform: translateY(-3px); box-shadow: 0 12px 32px rgba(102,126,234,0.4);}
+        .arrow-button {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border: none;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+        }
+        .progress-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+        }
+        .progress-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: rgba(0,0,0,0.2);
+            transition: background 0.3s ease;
+        }
+        .progress-dot.active {background: #667eea;}
+        @media (max-width: 480px) {
+            .ad-container {padding: 15px; max-height: none; height: 100vh; border-radius: 0;}
+            .article-image {max-width: 100%; max-height: 350px;}
+            .read-button {font-size: 16px; padding: 14px 32px; margin-top: 25px;}
+            .arrow-button {right: 15px; width: 50px; height: 50px; font-size: 20px;}
+        }
+        @media (max-height: 600px) {
+            .ad-container {padding: 15px;}
+            .article-image {max-height: 280px;}
+            .read-button {margin-top: 20px; padding: 12px 28px; font-size: 16px;}
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <div class="progress-container">
+            <div class="progress-dot active" data-index="0"></div>
+            <div class="progress-dot" data-index="1"></div>
+            <div class="progress-dot" data-index="2"></div>
+        </div>
+        <img id="articleImage" class="article-image" src="page1.jpg" alt="Article Preview" loading="eager">
+        <button id="readButton" class="read-button">Read Article</button>
+        <button id="arrowButton" class="arrow-button" aria-label="Next Article">→</button>
+    </div>
+    <script>
+        // Facebook playable ad requires CTA through FbPlayableAd.onCTAClick()
+        function onCTA() {
+            if (typeof FbPlayableAd !== "undefined" && FbPlayableAd.onCTAClick) {
+                FbPlayableAd.onCTAClick();
+            } else {
+                // Fallback for local testing only (remove on production!)
+                // window.open('https://apps.apple.com/us/app/%D9%86%D8%A7%D8%B3-nas/id6550910966', '_blank');
+            }
+        }
+
+        class PlayableAd {
+            constructor() {
+                this.images = ['page1.jpg', 'page2.jpg', 'page3.jpg'];
+                this.autoAdvanceDelay = 5000;
+                this.currentImageIndex = 0;
+                this.timer = null;
+
+                this.imageElement = document.getElementById('articleImage');
+                this.readButton = document.getElementById('readButton');
+                this.arrowButton = document.getElementById('arrowButton');
+                this.progressDots = document.querySelectorAll('.progress-dot');
+
+                this.init();
+            }
+            init() {
+                this.readButton.addEventListener('click', onCTA);
+                this.imageElement.addEventListener('click', onCTA);
+
+                this.arrowButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleArrowClick();
+                });
+
+                this.startTimer();
+                this.updateProgressIndicator();
+            }
+            startTimer() {
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => {
+                    this.handleAutoAdvance();
+                }, this.autoAdvanceDelay);
+            }
+            handleAutoAdvance() {
+                if (this.currentImageIndex < this.images.length - 1) {
+                    this.advanceToNextImage();
+                } else {
+                    onCTA();
+                }
+            }
+            handleArrowClick() {
+                if (this.currentImageIndex < this.images.length - 1) {
+                    this.advanceToNextImage();
+                } else {
+                    onCTA();
+                }
+            }
+            advanceToNextImage() {
+                clearTimeout(this.timer);
+                this.currentImageIndex++;
+                this.imageElement.src = this.images[this.currentImageIndex];
+                this.updateProgressIndicator();
+                this.startTimer();
+            }
+            updateProgressIndicator() {
+                this.progressDots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentImageIndex);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new PlayableAd();
+        });
+    </script>
+</body>
+</html>
