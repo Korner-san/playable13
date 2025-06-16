@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>News App Playable Ad</title>
+    <style>
+        * {margin:0; padding:0; box-sizing:border-box;}
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+        .ad-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: 400px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+            border-radius: 0;
+        }
+        
+        /* Phone-like image container */
+        .image-container {
+            position: relative;
+            width: 90%;
+            max-width: 280px;
+            height: 500px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.15);
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        
+        .article-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: top;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        
+        .image-container:active .article-image { 
+            transform: scale(0.98);
+        }
+        
+        /* Blur overlay - bottom 25% */
+        .blur-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 25%;
+            background: linear-gradient(to top, 
+                rgba(255,255,255,0.95) 0%,
+                rgba(255,255,255,0.8) 30%,
+                rgba(255,255,255,0.4) 70%,
+                transparent 100%);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            pointer-events: none;
+        }
+        
+        .progress-container {
+            position: absolute;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 20;
+        }
+        .progress-dot {
+            width: 8px; 
+            height: 8px; 
+            border-radius: 50%; 
+            background: rgba(0,0,0,0.2);
+            transition: background 0.3s ease;
+        }
+        .progress-dot.active {
+            background: #667eea;
+        }
+        
+        .read-button {
+            position: absolute;
+            bottom: 12.5%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+            z-index: 10;
+            white-space: nowrap;
+            font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+            touch-action: manipulation;
+        }
+        .read-button:active {
+            transform: translateX(-50%) scale(0.95);
+            box-shadow: 0 4px 16px rgba(102,126,234,0.4);
+        }
+        
+        .arrow-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            border: none;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            z-index: 15;
+            backdrop-filter: blur(10px);
+            touch-action: manipulation;
+        }
+        
+        .arrow-button-right {
+            right: 20px;
+        }
+        
+        .arrow-button-left {
+            left: 20px;
+        }
+        
+        .arrow-button:active {
+            transform: translateY(-50%) scale(0.9);
+        }
+        
+        /* Portrait optimization */
+        @media (orientation: portrait) {
+            .ad-container {
+                max-width: 100vw;
+                padding: 30px 20px;
+                border-radius: 0;
+            }
+            .image-container {
+                max-width: 100%;
+                height: 450px;
+            }
+            .read-button {
+                font-size: 12px;
+                padding: 10px 20px;
+            }
+            .arrow-button {
+                width: 30px;
+                height: 30px;
+                font-size: 14px;
+            }
+            .arrow-button-right {
+                right: 15px;
+            }
+            .arrow-button-left {
+                left: 15px;
+            }
+        }
+        
+        /* Landscape fallback */
+        @media (orientation: landscape) {
+            .ad-container {
+                max-width: 70vh;
+                max-height: 100vh;
+                padding: 20px;
+            }
+            .image-container {
+                height: 400px;
+                max-width: 300px;
+            }
+            .read-button {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+        }
+        
+        /* Small screens */
+        @media (max-width: 320px) {
+            .ad-container {
+                padding: 20px 15px;
+            }
+            .image-container {
+                width: 95%;
+                height: 400px;
+            }
+            .read-button {
+                font-size: 10px;
+                padding: 8px 16px;
+            }
+            .arrow-button {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            .arrow-button-right {
+                right: 10px;
+            }
+            .arrow-button-left {
+                left: 10px;
+            }
+        }
+        
+        /* Very tall phone screens */
+        @media (min-height: 800px) {
+            .image-container {
+                height: 550px;
+                max-width: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="ad-container">
+        <div class="progress-container">
+            <div class="progress-dot active" data-index="0"></div>
+            <div class="progress-dot" data-index="1"></div>
+            <div class="progress-dot" data-index="2"></div>
+            <div class="progress-dot" data-index="3"></div>
+            <div class="progress-dot" data-index="4"></div>
+        </div>
+        <div class="image-container">
+            <img id="articleImage" class="article-image" src="data:image/jpeg;base64,PLACEHOLDER_IMAGE_1" alt="Article Preview" loading="eager">
+            <div class="blur-overlay"></div>
+            <button id="readButton" class="read-button">حمّل لقراءة المقال الكامل</button>
+        </div>
+        <button id="arrowButtonLeft" class="arrow-button arrow-button-left" aria-label="Previous Article">←</button>
+        <button id="arrowButtonRight" class="arrow-button arrow-button-right" aria-label="Next Article">→</button>
+    </div>
+    <script>
+        // Facebook playable ad CTA function - REQUIRED
+        function onCTA() {
+            if (typeof FbPlayableAd !== "undefined" && FbPlayableAd.onCTAClick) {
+                FbPlayableAd.onCTAClick();
+            }
+            // No fallback - Facebook handles this
+        }
+
+        class PlayableAd {
+            constructor() {
+                // Base64 encoded images - will be replaced with actual data
+                this.images = [
+                    'data:image/jpeg;base64,PLACEHOLDER_IMAGE_1',
+                    'data:image/jpeg;base64,PLACEHOLDER_IMAGE_2', 
+                    'data:image/jpeg;base64,PLACEHOLDER_IMAGE_3',
+                    'data:image/jpeg;base64,PLACEHOLDER_IMAGE_4',
+                    'data:image/jpeg;base64,PLACEHOLDER_IMAGE_5'
+                ];
+                this.autoAdvanceDelay = 5000;
+                this.currentImageIndex = 0;
+                this.timer = null;
+                this.isInteracting = false;
+
+                this.imageElement = document.getElementById('articleImage');
+                this.readButton = document.getElementById('readButton');
+                this.arrowButtonLeft = document.getElementById('arrowButtonLeft');
+                this.arrowButtonRight = document.getElementById('arrowButtonRight');
+                this.progressDots = document.querySelectorAll('.progress-dot');
+                this.imageContainer = document.querySelector('.image-container');
+
+                this.init();
+            }
+
+            init() {
+                this.readButton.addEventListener('click', onCTA);
+                this.imageContainer.addEventListener('click', onCTA);
+
+                this.arrowButtonRight.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleNextClick();
+                });
+
+                this.arrowButtonLeft.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handlePrevClick();
+                });
+
+                this.startTimer();
+                this.updateProgressIndicator();
+                this.updateArrowVisibility();
+            }
+
+            handleNextClick() {
+                this.isInteracting = true;
+                if (this.currentImageIndex < this.images.length - 1) {
+                    this.advanceToNextImage();
+                } else {
+                    onCTA();
+                }
+            }
+
+            handlePrevClick() {
+                this.isInteracting = true;
+                if (this.currentImageIndex > 0) {
+                    this.goToPreviousImage();
+                }
+            }
+
+            advanceToNextImage() {
+                clearTimeout(this.timer);
+                this.currentImageIndex++;
+                this.imageElement.src = this.images[this.currentImageIndex];
+                this.updateProgressIndicator();
+                this.updateArrowVisibility();
+                this.startTimer();
+            }
+
+            goToPreviousImage() {
+                clearTimeout(this.timer);
+                this.currentImageIndex--;
+                this.imageElement.src = this.images[this.currentImageIndex];
+                this.updateProgressIndicator();
+                this.updateArrowVisibility();
+                this.startTimer();
+            }
+
+            updateProgressIndicator() {
+                this.progressDots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentImageIndex);
+                });
+            }
+
+            updateArrowVisibility() {
+                // Left arrow visibility
+                if (this.currentImageIndex === 0) {
+                    this.arrowButtonLeft.style.opacity = '0.3';
+                } else {
+                    this.arrowButtonLeft.style.opacity = '1';
+                }
+                
+                // Right arrow hint
+                if (this.currentImageIndex === this.images.length - 1) {
+                    this.arrowButtonRight.style.opacity = '0.7';
+                } else {
+                    this.arrowButtonRight.style.opacity = '1';
+                }
+            }
+
+            startTimer() {
+                if (!this.isInteracting && this.currentImageIndex < this.images.length - 1) {
+                    this.timer = setTimeout(() => {
+                        this.advanceToNextImage();
+                    }, this.autoAdvanceDelay);
+                }
+            }
+        }
+
+        // Start the playable ad when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new PlayableAd();
+        });
+
+        // Prevent context menu (right-click) on mobile
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        
+        // Prevent zoom on double tap
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        });
+        
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function(e) {
+            const now = (new Date()).getTime();
+            if (now - lastTouchEnd <= 300) {
+                e.preventDefault();
+            }
+            lastTouchEnd = now;
+        }, false);
+    </script>
+</body>
+</html> 
